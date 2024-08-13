@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<!--
+app3/templates/app3/start_all_tasks.html
+
+http://localhost:8001/start_all_tasks/
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Запуск всех задач</title>
+</head>
+<body>
+    <h1>Запуск всех задач</h1>
+    <form method="post" action="{% url 'start_all_tasks' %}">
+        {% csrf_token %}
+        <button type="submit">Запустить задачи</button>
+    </form>
+</body>
+</html>
