@@ -1,6 +1,5 @@
 FROM python:3.12-slim
 
-# Установка зависимостей, включая curl, ping и netcat
 RUN apt-get update && apt-get install -y \
     iputils-ping \
     curl \
@@ -10,7 +9,6 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 COPY requirements.txt .
-
 RUN pip install --upgrade pip && pip install --requirement requirements.txt
 
 COPY . .

@@ -1,9 +1,10 @@
 import logging
 import time
+from django.conf import settings
 
 import dramatiq
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("django")
 
 
 @dramatiq.actor(queue_name="high_priority_queue")
