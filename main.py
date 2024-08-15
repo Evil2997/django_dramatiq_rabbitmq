@@ -142,34 +142,21 @@ def main():
     upload_speed = 10  # Mbit
     download_speed = 5  # Mbit
     containers = ["db", "rabbitmq", "web", "worker"]
-    delay = 5
     compose_file_path: Final[pathlib.Path] = pathlib.Path(__file__).parent / "myproject"
 
     # 1. Выполнение команд очистки и завершения работы Docker
     execute_close_commands(sudo_password, network_name, compose_file_path)
 
-    # 2. Задержка перед перезапуском Docker Compose
-    logging.info(f"Задержка {delay} секунд перед перезапуском Docker Compose...")
-    time.sleep(delay)
-
-    # 3. Выполнение команды Docker Compose 'up'
+    # 2. Выполнение команды Docker Compose 'up'
     execute_docker_compose_up(compose_file_path)
 
-    # 4. Задержка перед созданием сети и подключением контейнеров
-    logging.info(f"Задержка {delay} секунд перед созданием сети и подключением контейнеров...")
-    time.sleep(delay)
-
-    # 5. Создание новой сети
+    # 3. Создание новой сети
     create_network(network_name, sudo_password)
 
-    # 6. Подключение всех контейнеров к сети
+    # 4. Подключение всех контейнеров к сети
     connect_containers_to_network(network_name, containers, sudo_password)
 
-    # 7. Задержка перед установкой ограничений на трафик
-    logging.info(f"Задержка {delay} секунд перед созданием сети и подключением контейнеров...")
-    time.sleep(delay)
-
-    # 8. Установка ограничений на трафик
+    # 5. Установка ограничений на трафик
     if upload_speed != 0 and download_speed != 0:
         interface = get_docker_network_interface(network_name)
         set_upload_limit(interface, upload_speed, sudo_password)
