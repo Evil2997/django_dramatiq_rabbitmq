@@ -142,7 +142,7 @@ def main():
     upload_speed = 10  # Mbit
     download_speed = 5  # Mbit
     containers = ["db", "rabbitmq", "web", "worker"]
-    delay = 20
+    delay = 5
     compose_file_path: Final[pathlib.Path] = pathlib.Path(__file__).parent / "myproject"
 
     # 1. Выполнение команд очистки и завершения работы Docker
