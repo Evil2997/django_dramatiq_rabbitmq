@@ -1,7 +1,9 @@
-import logging
-import subprocess
 import json
+import logging
+import pathlib
+import subprocess
 import time
+from typing import Final
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -13,42 +15,73 @@ def run_command(command, use_sudo=False, password=None):
     logging.info(f"Выполняется команда: {command}")
     result = subprocess.run(command, shell=True, text=True, capture_output=True)
     if result.returncode != 0:
-        logging.error(f"Ошибка при выполнении команды: {command}")
-        logging.error(result.stderr)
+        logging.error(f"ОШИБКА при выполнении команды: {command}")
+        logging.error(result.stderr.strip())
     else:
         logging.info(f"Команда выполнена успешно: {command}")
     return result.stdout.strip()
 
 
-def execute_docker_compose_up():
+def execute_docker_compose_up(compose_file_path: pathlib.Path):
     """Запускает Docker Compose с командой 'up'."""
-    command = "docker-compose up -d"
+    command = f"docker-compose -f {compose_file_path}/docker-compose.yml up -d"
     run_command(command)
 
 
-def execute_docker_compose_down():
+def execute_docker_compose_down(compose_file_path="."):
     """Запускает Docker Compose с командой 'down'."""
-    command = "docker-compose down"
+    command = f"docker-compose -f {compose_file_path}/docker-compose.yml down"
     run_command(command)
 
 
 def remove_network(network_name, password):
     """Удаляет Docker-сеть."""
-    command = f"docker network rm {network_name}"
-    run_command(command, use_sudo=True, password=password)
+    if check_network_exists(network_name):
+        command = f"docker network rm {network_name}"
+        run_command(command, use_sudo=True, password=password)
 
 
 def create_network(network_name, password):
-    """Создает Docker-сеть."""
-    command = f"docker network create {network_name}"
-    run_command(command, use_sudo=True, password=password)
+    """Создает Docker-сеть, если она не существует."""
+    if not check_network_exists(network_name):
+        command = f"docker network create {network_name}"
+        run_command(command, use_sudo=True, password=password)
+    else:
+        logging.info(f"Сеть {network_name} уже существует. Пропускаем создание сети.")
+
+
+def check_network_exists(network_name):
+    """Проверяет, существует ли сеть Docker."""
+    command = f"docker network ls --filter name=^{network_name}$ --format '{{{{.Name}}}}'"
+    result = run_command(command)
+    return result == network_name
 
 
 def connect_containers_to_network(network_name, containers, password):
     """Подключает указанные контейнеры к сети."""
     for container in containers:
-        command = f"docker network connect {network_name} {container}"
-        run_command(command, use_sudo=True, password=password)
+        if not check_container_in_network(container, network_name):
+            if check_container_exists(container):
+                command = f"docker network connect {network_name} {container}"
+                run_command(command, use_sudo=True, password=password)
+            else:
+                logging.error(f"Контейнер {container} не существует. Пропускаем подключение.")
+        else:
+            logging.info(f"Контейнер {container} уже подключен к сети {network_name}. Пропускаем.")
+
+
+def check_container_in_network(container_name, network_name):
+    """Проверяет, подключен ли контейнер к сети."""
+    command = f"docker inspect -f '{{{{.HostConfig.NetworkMode}}}}' {container_name}"
+    result = run_command(command)
+    return result == network_name
+
+
+def check_container_exists(container_name):
+    """Проверяет, существует ли контейнер."""
+    command = f"docker inspect {container_name}"
+    result = run_command(command)
+    return result != ""
 
 
 def get_docker_network_interface(network_name):
@@ -60,9 +93,20 @@ def get_docker_network_interface(network_name):
     return interface
 
 
+def delete_qdisc(interface, password, qdisc_type='root'):
+    """Удаляет qdisc, если он существует."""
+    command = f"tc qdisc show dev {interface}"
+    output = run_command(command, use_sudo=True, password=password)
+    if qdisc_type in output:
+        delete_command = f"tc qdisc del dev {interface} {qdisc_type}"
+        run_command(delete_command, use_sudo=True, password=password)
+    else:
+        logging.info(f"Qdisc {qdisc_type} не найден на интерфейсе {interface}, пропускаем удаление.")
+
+
 def set_upload_limit(interface, upload_speed, password):
     """Устанавливает ограничение на исходящий трафик."""
-    run_command(f"tc qdisc del dev {interface} root", use_sudo=True, password=password)
+    delete_qdisc(interface, password, 'root')
     run_command(f"tc qdisc add dev {interface} root handle 1: htb default 30", use_sudo=True, password=password)
     run_command(f"tc class add dev {interface} parent 1: classid 1:1 htb rate {upload_speed}mbit", use_sudo=True,
                 password=password)
@@ -72,17 +116,17 @@ def set_upload_limit(interface, upload_speed, password):
 
 def set_download_limit(interface, download_speed, password):
     """Устанавливает ограничение на входящий трафик."""
-    run_command(f"tc qdisc del dev {interface} ingress", use_sudo=True, password=password)
+    delete_qdisc(interface, password, 'ingress')
     run_command(f"tc qdisc add dev {interface} handle ffff: ingress", use_sudo=True, password=password)
     run_command(
         f"tc filter add dev {interface} parent ffff: protocol ip prio 50 u32 match ip dst 0.0.0.0/0 police rate {download_speed}mbit burst 10k drop flowid :1",
         use_sudo=True, password=password)
 
 
-def execute_close_commands(password, network_name):
+def execute_close_commands(password, network_name, compose_file_path: pathlib.Path):
     """Выполнение команд завершения и очистки Docker, включая удаление сети."""
     commands = [
-        "docker-compose down --rmi all --volumes --remove-orphans",
+        f"docker-compose -f {compose_file_path}/docker-compose.yml down --rmi all --volumes --remove-orphans",
         "docker system prune --all --volumes -f"
     ]
     for command in commands:
@@ -98,17 +142,18 @@ def main():
     upload_speed = 10  # Mbit
     download_speed = 5  # Mbit
     containers = ["db", "rabbitmq", "web", "worker"]
-    delay = 1
+    delay = 20
+    compose_file_path: Final[pathlib.Path] = pathlib.Path(__file__).parent / "myproject"
 
     # 1. Выполнение команд очистки и завершения работы Docker
-    execute_close_commands(sudo_password, network_name)
+    execute_close_commands(sudo_password, network_name, compose_file_path)
 
     # 2. Задержка перед перезапуском Docker Compose
     logging.info(f"Задержка {delay} секунд перед перезапуском Docker Compose...")
     time.sleep(delay)
 
     # 3. Выполнение команды Docker Compose 'up'
-    execute_docker_compose_up()
+    execute_docker_compose_up(compose_file_path)
 
     # 4. Задержка перед созданием сети и подключением контейнеров
     logging.info(f"Задержка {delay} секунд перед созданием сети и подключением контейнеров...")
@@ -125,10 +170,11 @@ def main():
     time.sleep(delay)
 
     # 8. Установка ограничений на трафик
-    interface = get_docker_network_interface(network_name)
-    set_upload_limit(interface, upload_speed, sudo_password)
-    set_download_limit(interface, download_speed, sudo_password)
-    logging.info("Ограничения на трафик установлены")
+    if upload_speed != 0 and download_speed != 0:
+        interface = get_docker_network_interface(network_name)
+        set_upload_limit(interface, upload_speed, sudo_password)
+        set_download_limit(interface, download_speed, sudo_password)
+        logging.info("Ограничения на трафик установлены")
 
 
 if __name__ == "__main__":
