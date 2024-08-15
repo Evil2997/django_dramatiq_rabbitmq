@@ -1,21 +1,20 @@
 import logging
-import time
 from django.conf import settings
 import time
 
 import dramatiq
 
+# Используем логгер "django"
 logger = logging.getLogger("django")
 
 
-@dramatiq.actor(queue_name="high_priority_queue")
-def high_priority_task(x, y):
-    logger.info(f"\n{'=' * 40}\nЗАПУСК ЗАДАЧИ HIGH PRIORITY\nАргументы: x={x}, y={y}\n{'-' * 40}")
-    print(f"\n{'=' * 40}\nЗАПУСК ЗАДАЧИ HIGH PRIORITY\nАргументы: x={x}, y={y}\n{'-' * 40}")
-    result = (x + y) * (x - y)
-    time.sleep(5)
-    logger.info(f"RESULT HIGH PRIORITY: {result}\n{'=' * 40}")
-    print(f"RESULT HIGH PRIORITY: {result}\n{'=' * 40}")
+@dramatiq.actor
+def high_priority_task(param1, param2):
+    logger.info(f"Воркер запущен с параметрами: {param1}, {param2}")
+
+    result = param1 + param2  # Пример простой логики
+
+    logger.info(f"Результат задачи: {result}")
     return result
 
 

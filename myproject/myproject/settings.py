@@ -136,30 +136,30 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-
 
 LOGGING = {
     "version": 1,
-    # "disable_existing_loggers": False,
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "verbose"}},
+    "formatters": {
+        "verbose": {
+            "format": "[%(asctime)s] "
+            "[PID %(process)d] "
+            "[Thread %(thread)d] "
+            "[%(module)s] "
+            "[%(levelname)s] "
+            ": %(message)s "
+            "(%(filename)s:%(lineno)d)",
         },
-    },
-    "root": {
-        "handlers": ["console"],
-        "level": "DEBUG",
     },
     "loggers": {
-        "dramatiq": {
+        "root": {  # root logger
             "handlers": ["console"],
-            "level": "DEBUG",
-            "propagate": False,
+            "level": "INFO",
         },
-        "django": {
+        "app3": {  # логгер для воркеров
             "handlers": ["console"],
-            "level": "DEBUG",
+            "level": "INFO",
             "propagate": False,
         },
     },
