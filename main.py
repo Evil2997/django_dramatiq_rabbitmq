@@ -139,7 +139,7 @@ def execute_close_commands(password, network_name, compose_file_path: pathlib.Pa
 def main():
     sudo_password = "12345678"
     network_name = "mynetwork"
-    upload_speed = 10  # Mbit
+    upload_speed = 0  # Mbit
     download_speed = 5  # Mbit
     containers = ["db", "rabbitmq", "web", "worker"]
     compose_file_path: Final[pathlib.Path] = pathlib.Path(__file__).parent / "myproject"
@@ -162,6 +162,8 @@ def main():
         set_upload_limit(interface, upload_speed, sudo_password)
         set_download_limit(interface, download_speed, sudo_password)
         logging.info("Ограничения на трафик установлены")
+    else:
+        logging.info("Ограничения не устанавливаются")
 
 
 if __name__ == "__main__":

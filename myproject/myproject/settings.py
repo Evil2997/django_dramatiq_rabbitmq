@@ -7,7 +7,6 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -18,7 +17,6 @@ SECRET_KEY = "django-insecure-10uc5&x9zpb-+awc_zou&@oldzbovf##838vy@pvb!08^+%ecw
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -81,9 +79,7 @@ DRAMATIQ_BROKER = {
     ]
 }
 
-
 WSGI_APPLICATION = "myproject.wsgi.application"
-
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
@@ -94,7 +90,6 @@ DATABASES = {
         "NAME": BASE_DIR / "db.sqlite3",
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -114,7 +109,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
@@ -125,7 +119,6 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
@@ -140,27 +133,45 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "verbose"}},
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose"
+        },
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': 'dramatiq_tasks.log',
+            'formatter': 'verbose',
+        },
+    },
     "formatters": {
         "verbose": {
             "format": "[%(asctime)s] "
-            "[PID %(process)d] "
-            "[Thread %(thread)d] "
-            "[%(module)s] "
-            "[%(levelname)s] "
-            ": %(message)s "
-            "(%(filename)s:%(lineno)d)",
+                      "[PID %(process)d] "
+                      "[Thread %(thread)d] "
+                      "[%(module)s] "
+                      "[%(levelname)s] "
+                      ": %(message)s "
+                      "(%(filename)s:%(lineno)d)",
         },
     },
-    "loggers": {
-        "root": {  # root logger
-            "handlers": ["console"],
-            "level": "INFO",
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True,
         },
-        "app3": {  # логгер для воркеров
-            "handlers": ["console"],
-            "level": "INFO",
-            "propagate": False,
+        'dramatiq': {  # Логгер для библиотеки Dramatiq
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'app3': {  # Логгер для вашего приложения
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': True,
+            "COLOR": "#123123"
         },
     },
 }

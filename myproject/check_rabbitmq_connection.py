@@ -20,6 +20,8 @@ def check_dns_resolution(hostname):
     """
     print(f"Checking DNS resolution for {hostname}...")
     result = run_command(f"nslookup {hostname}")
+    if "can't find" in result:
+        print(f"DNS resolution failed for {hostname}. Attempting to use IP address directly.")
     print(result)
 
 
@@ -41,14 +43,14 @@ def check_port(hostname, port):
     print(result)
 
 
-def check_python_rabbitmq_connection(hostname):
+def check_python_rabbitmq_connection(hostname, port):
     """
     Проверка подключения к RabbitMQ с помощью Python.
     """
-    print(f"Attempting to connect to RabbitMQ on {hostname} using Python...")
+    print(f"Attempting to connect to RabbitMQ on {hostname}:{port} using Python...")
     try:
         import pika
-        connection = pika.BlockingConnection(pika.ConnectionParameters(hostname))
+        connection = pika.BlockingConnection(pika.ConnectionParameters(host=hostname, port=port))
         channel = connection.channel()
         print("Connected to RabbitMQ")
         connection.close()
@@ -58,8 +60,8 @@ def check_python_rabbitmq_connection(hostname):
 
 def main():
     # Определите здесь хостнейм RabbitMQ, который используется вашим приложением.
-    rabbitmq_hostname = "rabbitmq"  # Замените на ваше значение
-    rabbitmq_port = 5672  # Стандартный порт RabbitMQ
+    rabbitmq_hostname = "127.0.0.1"  # Замените на ваше значение или используйте IP-адрес
+    rabbitmq_port = 5673  # Стандартный порт RabbitMQ, замените на 5673, если вы используете другой порт
 
     # Проверка разрешения имени хоста
     check_dns_resolution(rabbitmq_hostname)
@@ -71,7 +73,7 @@ def main():
     check_port(rabbitmq_hostname, rabbitmq_port)
 
     # Проверка подключения к RabbitMQ через Python
-    check_python_rabbitmq_connection(rabbitmq_hostname)
+    check_python_rabbitmq_connection(rabbitmq_hostname, rabbitmq_port)
 
 
 if __name__ == "__main__":
